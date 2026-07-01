@@ -1,9 +1,6 @@
 from pydantic import BaseModel
 
 
-'''class PaymentRequest(BaseModel):
-    amount: float'''
-#newly added to check payment details
 
 class CreatePaymentRequest(BaseModel):
     plan_name: str
@@ -15,3 +12,5 @@ class VerifyPaymentRequest(BaseModel):
     transaction_id:str
     gateway_name:str
     payment_success:bool
+    #transaction_id: str
+    #payment_gateway: str = "MANUAL"

@@ -1,13 +1,12 @@
-#from fastapi import APIRouter, Query
-#from core.database import get_db
 from fastapi import APIRouter, Query, Request, Depends
 
 from core.database import get_db
-#from core.database import admin_test
+
 from core.dependencies import get_current_user
+from services.request_limit_service import check_request_limit
 
 from services.audit_service import log_api_usage
-from services.abuse_service import check_abuse
+from services.abuse_service import is_ip_blocked
 
 router = APIRouter(
     tags=["Reverse Geocoding"]
@@ -22,9 +21,8 @@ def reverse_geocode(
     limit: int = Query(1, description="Number of nearest features"),
     user=Depends(get_current_user)
 ):
-    print("inside reverse")
+    #print("inside reverse")
     conn = get_db()
-    #conn = admin_test()
     cursor = conn.cursor()
     try:
         query = """
@@ -70,7 +68,11 @@ def reverse_geocode(
         cursor.execute(query, (lon, lat, lon, lat, limit))
         results = cursor.fetchall()
         ip_address = request.client.host
-
+        if is_ip_blocked(ip_address):
+            raise HTTPException(
+                  status_code=403,
+                  detail="IP_BLOCKED"
+            )
         log_api_usage(
             
             user_id=user["user_id"],
@@ -79,10 +81,10 @@ def reverse_geocode(
             api_key=user["api_key"]
         )
 
-        check_abuse(
-            user_id=user["user_id"],
-            ip_address=ip_address,
-            api_key=user["api_key"]
+        check_request_limit(
+            user["user_id"],
+            user["api_key"],
+            ip_address
         )
 
         return results or {"message": "No POI found near this location."}

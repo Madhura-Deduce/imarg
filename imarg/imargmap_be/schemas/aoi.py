@@ -1,5 +1,6 @@
-from pydantic import BaseModel
 from typing import Dict
+
+from pydantic import BaseModel
 
 
 class CreateAOIRequest(BaseModel):
@@ -7,9 +8,10 @@ class CreateAOIRequest(BaseModel):
     geometry: Dict
 
 
+class ValidateAOIRequest(BaseModel):
+    geometry: Dict
+
+
 class AOIResponse(BaseModel):
     id: int
     name: str
-
-class ValidateAOIRequest(BaseModel):
-    geometry: Dict

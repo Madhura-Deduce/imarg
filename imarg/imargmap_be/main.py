@@ -8,6 +8,7 @@ from routers.aoi import router as aoi_router
 from routers.payment import router as payment_router
 from routers.download import router as download_router
 from routers.user import router as user_router
+from routers.admin import router as admin_router
 
 app = FastAPI(
     title="FastAPI",
@@ -32,6 +33,7 @@ app.include_router(aoi_router)
 app.include_router(payment_router)
 app.include_router(download_router)
 app.include_router(user_router)
+app.include_router(admin_router)
 
 @app.get("/", tags=["Root"])
 def root():

@@ -1,36 +1,3 @@
-'''from fastapi import APIRouter
-from fastapi import Depends
-
-from schemas.payment import PaymentRequest
-
-from core.dependencies import get_current_user
-
-from services.payment_service import (
-    create_payment
-)
-
-router = APIRouter(
-    prefix="/payments",
-    tags=["Payments"]
-)
-
-
-@router.post("")
-def create_payment_api(
-    data: PaymentRequest,
-    user=Depends(get_current_user)
-):
-
-    payment = create_payment(
-        user["user_id"],
-        data.amount,
-        "TXN123"
-    )
-
-    return {
-        "success": True,
-        "payment_id": payment["id"]
-    }'''
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import Request
@@ -68,8 +35,6 @@ def create_payment_api(
     payment = create_payment(
         user_id=user["user_id"],
         email=user["email"],
-        api_key=user["api_key"],
-        ip_address=request.client.host,
         plan_name=data.plan_name,
         duration_type=data.duration_type
     )

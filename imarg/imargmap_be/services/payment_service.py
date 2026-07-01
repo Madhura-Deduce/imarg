@@ -1,216 +1,20 @@
-# core.database import get_db1
-'''from core.database import get_aoi_db
-
-def create_payment(
-    user_id,
-    amount,
-    transaction_id
-):
-
-    #conn = get_db1()
-    conn = get_aoi_db()
-    cur = conn.cursor()
-
-    try:
-
-        cur.execute(
-            """
-            INSERT INTO payments
-            (
-                user_id,
-                amount,
-                payment_status,
-                transaction_id,
-                payment_gateway
-            )
-            VALUES
-            (
-                %s,
-                %s,
-                'SUCCESS',
-                %s,
-                'MANUAL'
-            )
-            RETURNING id
-            """,
-            (
-                user_id,
-                amount,
-                transaction_id
-            )
-        )
-
-        payment = cur.fetchone()
-
-        conn.commit()
-
-        return payment
-
-    finally:
-        cur.close()
-        conn.close()'''
-#from core.database import get_aoi_db
-'''from core.database import admin_test
-
-PLAN_PRICES = {
-    "STARTER": 999,
-    "PRO": 2999,
-    "ENTERPRISE": 7999
-}
-
-
-def create_payment(
-        user_id,
-        plan_name
-):
-
-    #conn = get_aoi_db()
-    conn = admin_test()
-    cur = conn.cursor()
-
-    try:
-
-        amount = PLAN_PRICES[plan_name]
-
-        transaction_id = f"TXN_{user_id}_{plan_name}"
-
-        cur.execute(
-            """
-            INSERT INTO payments
-            (
-                user_id,
-                plan_name,
-                amount,
-                payment_status,
-                transaction_id,
-                payment_gateway
-            )
-            VALUES
-            (
-                %s,
-                %s,
-                %s,
-                'SUCCESS',
-                %s,
-                'MANUAL'
-            )
-            RETURNING id
-            """,
-            (
-                user_id,
-                plan_name,
-                amount,
-                transaction_id
-            )
-        )
-
-        payment = cur.fetchone()
-
-        cur.execute(
-            """
-            UPDATE users
-            SET subscription = %s
-            WHERE id = %s
-            """,
-            (
-                plan_name,
-                user_id
-            )
-        )
-
-        conn.commit()
-
-        return payment
-
-    finally:
-
-        cur.close()
-
-        conn.close()'''
 import uuid
 from fastapi import HTTPException
-from core.database import admin_test
+from core.database import get_db1
 from core.config import PLAN_PRICES
 
 
-'''def create_payment(
-        user_id,
-        email,
-        api_key,
-        ip_address,
-        plan_name,
-        duration_type
-):
-    """
-    Create payment order
-    Initial status = CREATED
-    """
 
-    conn = admin_test()
-    cur = conn.cursor()
-
-    try:
-
-        amount = PLAN_PRICES[duration_type]
-
-        order_id = str(uuid.uuid4())
-
-        cur.execute(
-            """
-            INSERT INTO payments
-            (
-                user_id,
-                email,
-                api_key,
-                ip_address,
-                plan_name,
-                duration_type,
-                amount,
-                payment_status,
-                order_id
-            )
-            VALUES
-            (
-                %s,%s,%s,%s,%s,%s,%s,
-                'CREATED',
-                %s
-            )
-            RETURNING id, order_id
-            """,
-            (
-                user_id,
-                email,
-                api_key,
-                ip_address,
-                plan_name,
-                duration_type,
-                amount,
-                order_id
-            )
-        )
-
-        payment = cur.fetchone()
-
-        conn.commit()
-
-        return payment
-
-    finally:
-
-        cur.close()
-        conn.close()'''
 def create_payment(
         user_id,
         email,
-        api_key,
-        ip_address,
         plan_name,
         duration_type
 ):
 
-    #conn = admin_test()
-    conn = admin_test()
-    print(conn.get_dsn_parameters())
+    
+    conn = get_db1()
+    
     cur = conn.cursor()
 
     try:
@@ -281,15 +85,14 @@ def create_payment(
             INSERT INTO payments
             (
                 user_id,
+                email,
                 full_name,
                 order_id,
                 plan_name,
                 duration_type,
                 amount,
                 payment_status,
-                email,
-                api_key,
-                ip_address
+                payment_gateway
             )
             VALUES
             (
@@ -299,7 +102,6 @@ def create_payment(
                 %s,
                 %s,
                 %s,
-                'CREATED',
                 %s,
                 %s,
                 %s
@@ -308,14 +110,14 @@ def create_payment(
             """,
             (
                 user_id,
+                email,
                 full_name,
                 order_id,
                 plan_name,
                 duration_type,
                 amount,
-                email,
-                api_key,
-                ip_address
+                "CREATED",
+                "MANUAL"
             )
         )
         print("Inserted into subscription_history")
@@ -338,127 +140,95 @@ def create_payment(
         conn.close()
 
 
-'''def verify_payment(
-        order_id,
-        transaction_id,
-        gateway_name,
-        payment_success
-):
-    """
-    Called after payment gateway callback
-    """
 
-    conn = admin_test()
-    cur = conn.cursor()
-
-    try:
-
-        if payment_success:
-
-            status = "SUCCESS"
-
-        else:
-
-            status = "FAILED"
-
-        cur.execute(
-            """
-            UPDATE payments
-            SET
-                payment_status=%s,
-                transaction_id=%s,
-                payment_gateway=%s
-            WHERE order_id=%s
-            RETURNING user_id, plan_name
-            """,
-            (
-                status,
-                transaction_id,
-                gateway_name,
-                order_id
-            )
-        )
-
-        result = cur.fetchone()
-
-        if result and status == "SUCCESS":
-
-            cur.execute(
-                """
-                UPDATE users
-                SET subscription=%s
-                WHERE id=%s
-                """,
-                (
-                    result["plan_name"],
-                    result["user_id"]
-                )
-            )
-
-        conn.commit()
-
-        return {
-            "order_id": order_id,
-            "payment_status": status
-        }
-
-    finally:
-
-        cur.close()
-        conn.close()'''
 def verify_payment(
         order_id,
         transaction_id,
         gateway_name,
         payment_success
 ):
-    """
-    Called after payment gateway callback
-    """
 
-    conn = admin_test()
+    conn = get_db1()
     cur = conn.cursor()
 
     try:
 
         status = "SUCCESS" if payment_success else "FAILED"
-            
 
-        # Update payment and fetch details
+        # Get payment details first
         cur.execute(
             """
-            UPDATE payments
-            SET
-                payment_status=%s,
-                transaction_id=%s,
-                payment_gateway=%s
-            WHERE order_id=%s
-            RETURNING
+            SELECT
                 id,
                 user_id,
                 plan_name,
                 duration_type
+            FROM payments
+            WHERE order_id=%s
             """,
-            (
-                status,
-                transaction_id,
-                gateway_name,
-                order_id
-            )
+            (order_id,)
         )
 
         payment = cur.fetchone()
-        print(payment)
 
-        if payment and status == "SUCCESS":
-            print("inside success block")
+        if not payment:
+            raise Exception("Payment not found")
 
-            payment_id = payment["id"]
-            user_id = payment["user_id"]
-            new_plan = payment["plan_name"]
-            duration_type = payment["duration_type"]
+        payment_id = payment["id"]
+        user_id = payment["user_id"]
+        new_plan = payment["plan_name"]
+        duration_type = payment["duration_type"]
 
-            # Get current plan before update
+        # Decide expiry interval
+        if duration_type == "YEARLY":
+            expiry_interval = "1 year"
+        else:
+            expiry_interval = "1 month"
+
+        # Update payment record
+        if payment_success:
+
+            cur.execute(
+                f"""
+                UPDATE payments
+                SET
+                    payment_status=%s,
+                    transaction_id=%s,
+                    payment_gateway=%s,
+                    expiry_date=NOW() + interval '{expiry_interval}'
+                WHERE order_id=%s
+                """,
+                (
+                    status,
+                    transaction_id,
+                    gateway_name,
+                    order_id
+                )
+            )
+
+        else:
+
+            cur.execute(
+                """
+                UPDATE payments
+                SET
+                    payment_status=%s,
+                    transaction_id=%s,
+                    payment_gateway=%s
+                WHERE order_id=%s
+                """,
+                (
+                    status,
+                    transaction_id,
+                    gateway_name,
+                    order_id
+                )
+            )
+
+        # Update subscription only if payment succecded
+        if payment_success:
+
+            # Get old subscription
             cur.execute(
                 """
                 SELECT subscription_type
@@ -470,26 +240,43 @@ def verify_payment(
 
             user_data = cur.fetchone()
 
-            old_plan = user_data["subscription_type"]
-
-            # Update current user subscription
-            cur.execute(
-                """
-                UPDATE users
-                SET subscription_type=%s
-                WHERE id=%s
-                """,
-                (
-                    new_plan,
-                    user_id
-                )
+            old_plan = (
+                user_data["subscription_type"]
+                if user_data else "FREE"
             )
 
-            # Decide expiry period
+            # Update user subscription
             if duration_type == "YEARLY":
-                expiry_interval = "1 year"
+
+                cur.execute(
+                    """
+                    UPDATE users
+                    SET
+                        subscription_type=%s,
+                        subscription_expiry=NOW() + interval '1 year'
+                    WHERE id=%s
+                    """,
+                    (
+                        new_plan,
+                        user_id
+                    )
+                )
+
             else:
-                expiry_interval = "1 month"
+
+                cur.execute(
+                    """
+                    UPDATE users
+                    SET
+                        subscription_type=%s,
+                        subscription_expiry=NOW() + interval '1 month'
+                    WHERE id=%s
+                    """,
+                    (
+                        new_plan,
+                        user_id
+                    )
+                )
 
             # Insert subscription history
             cur.execute(
@@ -533,11 +320,10 @@ def verify_payment(
 
         cur.close()
         conn.close()
-
-
 def get_payment_status(order_id):
 
-    conn = admin_test()
+    #conn = admin_test()
+    conn=get_db1()
     cur = conn.cursor()
 
     try:
@@ -548,9 +334,12 @@ def get_payment_status(order_id):
                 id,
                 order_id,
                 amount,
+                plan_name,
+                duration_type,
                 payment_status,
                 transaction_id,
                 payment_gateway,
+                expiry_date,
                 created_at
             FROM payments
             WHERE order_id=%s
@@ -570,7 +359,8 @@ def get_payment_status(order_id):
 
 def get_payment_history(user_id):
 
-    conn = admin_test()
+    #conn = admin_test()
+    conn=get_db1()
     cur = conn.cursor()
 
     try:
@@ -587,6 +377,7 @@ def get_payment_history(user_id):
                 payment_status,
                 transaction_id,
                 payment_gateway,
+                expiry_date,
                 created_at
             FROM payments
             WHERE user_id=%s

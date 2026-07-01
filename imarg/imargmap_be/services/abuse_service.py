@@ -1,15 +1,9 @@
 from fastapi import HTTPException
 
-from core.database import admin_test
+#from core.database import admin_test
+from core.database import get_db1
 
-from core.config import (
-    USER_REQUEST_LIMIT,
-    API_KEY_REQUEST_LIMIT,
-    IP_REQUEST_LIMIT,
-    RATE_WINDOW_MINUTES,
-    MAX_IPS_PER_USER,
-    IP_ROTATION_WINDOW_MINUTES
-)
+
 
 
 def block_user(
@@ -20,8 +14,10 @@ def block_user(
         reason
 ):
 
-    conn = admin_test()
+    
+    conn=get_db1()
     cur = conn.cursor()
+
 
     try:
 
@@ -49,7 +45,35 @@ def block_user(
                 reason
             )
         )
-        #print("absue called")
+        print("absue called")
+        # Store blocked IP
+
+        cur.execute(
+            """
+            INSERT INTO blocked_ips
+            (
+                ip_address,
+                blocked_reason,
+                is_active
+            )
+            VALUES
+            (
+                %s,
+                %s,
+                TRUE
+            )
+            ON CONFLICT (ip_address)
+            DO UPDATE
+            SET
+                blocked_reason = EXCLUDED.blocked_reason,
+                blocked_at = NOW(),
+                is_active = TRUE
+            """,
+            (
+                ip_address,
+                reason
+            )
+        )
 
         # Block user
         cur.execute(
@@ -57,12 +81,31 @@ def block_user(
             UPDATE users
             SET
                 is_active = FALSE,
-                is_blocked = TRUE,
-                api_key = NULL
+                
+                api_key = NULL,
+                blocked_at=NOW(),
+                blocked_reason=%s
             WHERE id=%s
             """,
-            (user_id,)
+            (reason,user_id)
         )
+        print(
+        "BLOCKING USER:",
+        user_id,
+        "COUNT:",
+        request_count,
+        "IP:",
+        ip_address
+        )
+         
+        cur.execute(
+            """
+            DELETE 
+            FROM user_request_counter
+            where USER_ID=%s
+            """,
+            (user_id,)
+         )
 
         conn.commit()
 
@@ -71,140 +114,100 @@ def block_user(
         cur.close()
         conn.close()
 
-#("check abuse")
+
+def is_ip_blocked(ip_address):
+
+    conn = get_db1()
+    cur = conn.cursor()
+
+    try:
+
+        cur.execute(
+            """
+            SELECT id
+            FROM blocked_ips
+            WHERE
+                ip_address=%s
+                AND is_active=TRUE
+            """,
+            (ip_address,)
+        )
+
+        result = cur.fetchone()
+
+        return result is not None
+
+    finally:
+
+        cur.close()
+        conn.close()
+
+
+
 def check_abuse(
         user_id,
         api_key,
         ip_address
 ):
 
-    conn = admin_test()
+    #
+    # Check whether IP already blocked
+    #
+    if is_ip_blocked(ip_address):
+
+        raise HTTPException(
+            status_code=403,
+            detail="IP_BLOCKED"
+        )
+
+    conn = get_db1()
     cur = conn.cursor()
 
     try:
 
-        
-        # USER LIMIT
-        
+        #
+        # Count ALL requests made by this user
+        # within configured window
+        #
         cur.execute(
             f"""
-            SELECT COUNT(*)
-            FROM api_usage_logs
-            WHERE user_id=%s
-            AND request_time >
-            NOW() - interval '{RATE_WINDOW_MINUTES} minute'
+            SELECT COUNT(*) AS count
+            FROM api_usage
+            WHERE
+                user_id=%s
+                AND request_time >
+                    NOW() - (%s * interval '1 minute')
             """,
             (user_id,)
         )
 
-        user_count = cur.fetchone()["count"]
+        result = cur.fetchone()
 
-        if user_count > USER_REQUEST_LIMIT:
+        global_count = result["count"]
 
-            block_user(
-                user_id,
-                api_key,
-                ip_address,
-                user_count,
-                "USER_RATE_LIMIT_EXCEEDED"
-            )
-
-            raise HTTPException(
-                status_code=403,
-                detail="USER_RATE_LIMIT_EXCEEDED"
-            )
-
-        
-        # API KEY LIMIT
-        
-        cur.execute(
-            f"""
-            SELECT COUNT(*)
-            FROM api_usage_logs
-            WHERE api_key=%s
-            AND request_time >
-            NOW() - interval '{RATE_WINDOW_MINUTES} minute'
-            """,
-            (api_key,)
+        print(
+            "user:",
+            user_id,
+            "requests:",
+            global_count
         )
 
-        api_count = cur.fetchone()["count"]
-
-        if api_count > API_KEY_REQUEST_LIMIT:
-
-            block_user(
-                user_id,
-                api_key,
-                ip_address,
-                api_count,
-                "API_KEY_RATE_LIMIT_EXCEEDED"
-            )
-
-            raise HTTPException(
-                status_code=403,
-                detail="API_KEY_RATE_LIMIT_EXCEEDED"
-            )
-
-        
-        # IP LIMIT
-        
-        cur.execute(
-            f"""
-            SELECT COUNT(*)
-            FROM api_usage_logs
-            WHERE ip_address=%s
-            AND request_time >
-            NOW() - interval '{RATE_WINDOW_MINUTES} minute'
-            """,
-            (ip_address,)
-        )
-
-        ip_count = cur.fetchone()["count"]
-
-        if ip_count > IP_REQUEST_LIMIT:
+        #
+        # Block if limit exceeded
+        #
+        if global_count >= GLOBAL_REQUEST_LIMIT:
 
             block_user(
                 user_id,
                 api_key,
                 ip_address,
-                ip_count,
-                "IP_RATE_LIMIT_EXCEEDED"
+                global_count,
+                "GLOBAL_REQUEST_LIMIT_EXCEEDED"
             )
 
             raise HTTPException(
                 status_code=403,
-                detail="IP_RATE_LIMIT_EXCEEDED"
-            )
-
-        
-        # API KEY SHARING
-        
-        cur.execute(
-            f"""
-            SELECT COUNT(DISTINCT ip_address)
-            FROM api_usage_logs
-            WHERE user_id=%s
-            AND request_time >
-            NOW() - interval '{IP_ROTATION_WINDOW_MINUTES} minute'
-            """,
-            (user_id,)
-        )
-
-        ip_used = cur.fetchone()["count"]
-
-        if ip_used > MAX_IPS_PER_USER:
-
-            block_user(
-                user_id,
-                api_key,
-                ip_address,
-                ip_used,
-                "API_KEY_SHARING_DETECTED"
-            )
-
-            raise HTTPException(
-                status_code=403,
-                detail="API_KEY_SHARING_DETECTED"
+                detail="GLOBAL_REQUEST_LIMIT_EXCEEDED"
             )
 
     finally:

@@ -3,48 +3,9 @@ from fastapi import HTTPException
 from core.database import get_db1
 
 
-from core.database import admin_test
-'''def check_api_rate_limit(
-    user_id,
-    subscription
-):
 
-    #conn = get_db1()
-    #conn = get_aoi_db()
-    conn = admin_test()
-    cur = conn.cursor()
-
-    try:
-
-        if subscription == "FREE":
-            limit = 30
-        else:
-            limit = 100
-
-        cur.execute(
-            """
-            SELECT COUNT(*)
-            FROM api_usage
-            WHERE user_id=%s
-            AND request_time >
-                NOW() - interval '1 minute'
-            """,
-            (user_id,)
-        )
-
-        count = cur.fetchone()["count"]
-
-        if count >= limit:
-            raise HTTPException(
-                status_code=429,
-                detail="Rate limit exceeded"
-            )
-
-    finally:
-        cur.close()
-        conn.close()'''
 from fastapi import HTTPException
-from core.database import admin_test
+
 
 
 '''def check_api_rate_limit(
@@ -52,8 +13,7 @@ from core.database import admin_test
     subscription
 ):
 
-    #conn = admin_test()
-    conn=get_db1()
+    conn = get_db1()
     cur = conn.cursor()
 
     try:
@@ -66,7 +26,7 @@ from core.database import admin_test
         cur.execute(
             """
             SELECT COUNT(*)
-            FROM api_usage
+            FROM api_usage_logs
             WHERE user_id=%s
             AND request_time >
                 NOW() - interval '1 minute'
@@ -108,8 +68,7 @@ def check_download_rate_limit(
 
     conn = get_db1()
     cur = conn.cursor()
-    '''conn = admin_test()
-    cur = conn.cursor()'''
+    
 
     try:
 
@@ -140,22 +99,7 @@ def check_download_rate_limit(
         cur.close()
         conn.close()
 
-'''def check_area_limit(
-    area_sqkm,
-    subscription
-):
 
-    if subscription == "PREMIUM":
-
-        if area_sqkm > 500:
-
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "Maximum allowed area "
-                    "is 500 sqkm"
-                )
-            )'''
 def check_area_limit(
     area_sqkm,
     subscription

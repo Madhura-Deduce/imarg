@@ -1,37 +1,3 @@
-'''from fastapi import APIRouter
-from fastapi import Depends
-
-from schemas.payment import PaymentRequest
-
-from core.dependencies import get_current_user
-
-from services.payment_service import (
-    create_payment
-)
-
-router = APIRouter(
-    prefix="/payments",
-    tags=["Payments"]
-)
-
-
-@router.post("")
-def create_payment_api(
-    data: PaymentRequest,
-    user=Depends(get_current_user)
-):
-
-    payment = create_payment(
-        user["user_id"],
-        data.amount,
-        f"TXN_{user['user_id']}"
-    )
-
-    return {
-        "success": True,
-        "message": "Payment successful. Premium activated.",
-        "payment_id": payment["id"]
-    }'''
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import Request
@@ -66,21 +32,13 @@ def create_payment_api(
         user=Depends(get_current_user)
 ):
 
-    '''payment = create_payment(
+    payment = create_payment(
         user_id=user["user_id"],
         email=user["email"],
-        api_key=user["api_key"],
-        ip_address=request.client.host,
         plan_name=data.plan_name,
         duration_type=data.duration_type
-    )'''
-
-    payment = create_payment(
-    user_id=user["user_id"],
-    email=user["email"],
-    plan_name=data.plan_name,
-    duration_type=data.duration_type
     )
+
     return {
         "success": True,
         "order_id": payment["order_id"],
@@ -101,9 +59,7 @@ def verify_payment_api(
         transaction_id=data.transaction_id,
         gateway_name=data.gateway_name,
         payment_success=data.payment_success
-    
     )
-    
 
     return {
         "success": True,
@@ -115,7 +71,6 @@ def verify_payment_api(
 #
 # Get Payment Status
 #
-#@router.get("/status/{order_id}")
 @router.get("/status/{order_id}")
 def payment_status_api(
         order_id: str
@@ -124,7 +79,6 @@ def payment_status_api(
     payment = get_payment_status(
         order_id
     )
-    
 
     return {
         "success": True,

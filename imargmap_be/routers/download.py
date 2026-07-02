@@ -12,7 +12,6 @@ from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import Request #newly added
-from services.request_limit_service import check_request_limit
 
 from fastapi.responses import (
     StreamingResponse,
@@ -20,11 +19,9 @@ from fastapi.responses import (
 )
 
 from core.dependencies import get_current_user
-from services.abuse_service import (
-    #check_abuse,
-    is_ip_blocked
-)
+from services.request_limit_service import check_request_limit
 from core.rate_limit import check_download_rate_limit
+from services.abuse_service import is_ip_blocked
 
 from schemas.download import DownloadRequest
 
@@ -44,19 +41,13 @@ router = APIRouter(
 )
 
 
-'''@router.post("")
-def download_data(
-    data: DownloadRequest,
-    user=Depends(get_current_user)
-):'''
+
 @router.post("")
 def download_data(
     request: Request,
     data: DownloadRequest,
     user=Depends(get_current_user)
 ):
-    ip_address = request.client.host
-
     
     allowed = can_download(
         user["user_id"]
@@ -99,35 +90,24 @@ def download_data(
             detail="No POIs found in selected area"
         )
 
-    '''log_download(
-        user["user_id"],
-        data.format
-    )'''
+    
     ip_address = request.client.host
 
     log_download(
         user["user_id"],
         user["email"],
-        #user["api_key"],
         data.format,
         ip_address
 )
 
-    '''log_api_usage(
-        user["user_id"],
-        "/download"
-    )'''
+    
     log_api_usage(
     user["user_id"],
     user["api_key"],
     ip_address,
     "/download"
     )
-    '''check_abuse(
-    user["user_id"],
-    user["api_key"],
-    ip_address
-    )'''
+    
 
     #
     # GEOJSON

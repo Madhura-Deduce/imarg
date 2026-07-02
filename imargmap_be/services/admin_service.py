@@ -10,9 +10,27 @@ def get_all_users():
 
         cur.execute(
             """
-            SELECT *
-            FROM users
-            ORDER BY id DESC
+            SELECT
+        u.*,
+
+        COUNT(a.id) AS request_count,
+
+        COALESCE(
+            STRING_AGG(
+                DISTINCT a.ip_address,
+                ', '
+            ),
+            ''
+        ) AS ip_addresses
+
+    FROM users u
+
+    LEFT JOIN api_usage a
+        ON u.id = a.user_id
+
+    GROUP BY u.id
+
+    ORDER BY u.id DESC
             """
         )
 
@@ -86,7 +104,7 @@ def update_role(
         cur.close()
         conn.close()
 
-'''def activate_user(user_id):
+def activate_user(user_id):
     conn = get_db1()
     cur = conn.cursor()
 
@@ -100,58 +118,16 @@ def update_role(
             """,
             (user_id,)
         )
-
-        conn.commit()
-
-        return True
-
-    finally:
-        cur.close()
-        conn.close()'''
-def activate_user(user_id):
-
-    conn = get_db1()
-    cur = conn.cursor()
-
-    try:
-
-        #
-        # Activate user
-        #
-        cur.execute(
-            """
-            UPDATE users
-            SET
-                is_active = TRUE
-            WHERE id = %s
-            """,
-            (user_id,)
-        )
-
-        #
-        # Remove previous request counter
-        #
-        cur.execute(
-            """
-            DELETE FROM user_request_counter
-            WHERE user_id = %s
-            """,
-            (user_id,)
-        )
-
-        #
-        # Remove previous IP blocks for this user
-        # (optional but recommended)
-        #
+        #newly added
         cur.execute(
             """
             UPDATE blocked_ips
-            SET is_active = FALSE
+            SET is_active=FALSE
             WHERE ip_address IN
             (
-                SELECT DISTINCT ip_address
+                SELECT DISTINCT ip_address 
                 FROM abuse_logs
-                WHERE user_id = %s
+                WHERE user_id=%s
             )
             """,
             (user_id,)
@@ -297,5 +273,42 @@ def unblock_ip(ip_address):
 
     finally:
 
+        cur.close()
+        conn.close()
+
+#IP USED BY USER
+def get_user_ips():
+
+    conn = get_db1()
+    cur = conn.cursor()
+
+    try:
+
+        cur.execute(
+            """
+            SELECT
+                u.id,
+                STRING_AGG(
+                    DISTINCT a.ip_address,
+                    ', '
+                ) AS ip_addresses
+
+            FROM users u
+
+            LEFT JOIN api_usage a
+                ON u.id = a.user_id
+
+            GROUP BY u.id
+            """
+        )
+
+        rows = cur.fetchall()
+
+        return {
+            row["id"]: row["ip_addresses"]
+            for row in rows
+        }
+
+    finally:
         cur.close()
         conn.close()

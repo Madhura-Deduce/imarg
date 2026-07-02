@@ -3,15 +3,11 @@ import json
 from core.database import get_db2
 
 
-PREVIEW_LIMIT = 100
-#from core.database import get_aoi_db
-#from core.database import admin_test
 
 def validate_aoi(geometry):
 
     #conn = get_db1()
-    '''conn = get_aoi_db()
-    cur = conn.cursor()'''
+    
     conn = get_db2()
     cur = conn.cursor()
 
@@ -76,13 +72,8 @@ def validate_aoi(geometry):
                 p.geom,
                 (SELECT geom FROM aoi)
             )
-
-            LIMIT %s
             """,
-            (
-                geojson,
-                PREVIEW_LIMIT
-            )
+            (geojson,)
         )
 
         preview_rows = cur.fetchall()

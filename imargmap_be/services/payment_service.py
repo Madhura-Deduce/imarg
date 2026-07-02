@@ -1,8 +1,6 @@
-# core.database import get_db1
-from core.database import get_db1
 import uuid
 from fastapi import HTTPException
-#from core.database import admin_test
+from core.database import get_db1
 from core.config import PLAN_PRICES
 
 
@@ -10,16 +8,13 @@ from core.config import PLAN_PRICES
 def create_payment(
         user_id,
         email,
-        #api_key,
-        #ip_address,
         plan_name,
         duration_type
 ):
 
-    #conn = admin_test()
-    #conn = admin_test()
-    conn=get_db1()
-    #print(conn.get_dsn_parameters())
+    
+    conn = get_db1()
+    
     cur = conn.cursor()
 
     try:
@@ -89,14 +84,14 @@ def create_payment(
             """
             INSERT INTO payments
             (
-                user_id, 
-                email, 
-                full_name, 
+                user_id,
+                email,
+                full_name,
                 order_id,
-                plan_name, 
-                duration_type, 
-                amount, 
-                payment_status, 
+                plan_name,
+                duration_type,
+                amount,
+                payment_status,
                 payment_gateway
             )
             VALUES
@@ -145,74 +140,7 @@ def create_payment(
         conn.close()
 
 
-'''def verify_payment(
-        order_id,
-        transaction_id,
-        gateway_name,
-        payment_success
-):
-    """
-    Called after payment gateway callback
-    """
 
-    conn = admin_test()
-    cur = conn.cursor()
-
-    try:
-
-        if payment_success:
-
-            status = "SUCCESS"
-
-        else:
-
-            status = "FAILED"
-
-        cur.execute(
-            """
-            UPDATE payments
-            SET
-                payment_status=%s,
-                transaction_id=%s,
-                payment_gateway=%s
-            WHERE order_id=%s
-            RETURNING user_id, plan_name
-            """,
-            (
-                status,
-                transaction_id,
-                gateway_name,
-                order_id
-            )
-        )
-
-        result = cur.fetchone()
-
-        if result and status == "SUCCESS":
-
-            cur.execute(
-                """
-                UPDATE users
-                SET subscription=%s
-                WHERE id=%s
-                """,
-                (
-                    result["plan_name"],
-                    result["user_id"]
-                )
-            )
-
-        conn.commit()
-
-        return {
-            "order_id": order_id,
-            "payment_status": status
-        }
-
-    finally:
-
-        cur.close()
-        conn.close()'''
 def verify_payment(
         order_id,
         transaction_id,

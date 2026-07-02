@@ -1,19 +1,17 @@
 import json
 
 from core.database import get_db1
+
 from core.database import get_db2
-#from core.database import get_aoi_db
-#from core.database import admin_test
+
 
 def can_download(user_id):
 
     conn = get_db1()
-    #conn = get_aoi_db()
-    #conn = admin_test()
     cur = conn.cursor()
 
     try:
-        print("checking download permission for",user_id)
+
         cur.execute(
             """
             SELECT 1

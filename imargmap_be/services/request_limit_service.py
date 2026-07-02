@@ -86,12 +86,12 @@ def check_request_limit(
                 api_key,
                 ip_address,
                 effective_count,
-                "GLOBAL_REQUEST_LIMIT_EXCEEDED"
+                "Request limit exceeded"
             )
 
             raise HTTPException(
                 status_code=403,
-                detail="GLOBAL_REQUEST_LIMIT_EXCEEDED"
+                detail="Request limit exceeded"
             )
 
     finally:

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from core.config import (
     SECRET_KEY,
     ALGORITHM,
-    ACCESS_TOKEN_EXPIRE_HOURS
+    ACCESS_TOKEN_EXPIRE_MINUTES
 )
 
 pwd_context = CryptContext(
@@ -35,7 +35,7 @@ def create_access_token(data: dict):
     payload["exp"] = (
         datetime.utcnow()
         + timedelta(
-            hours=ACCESS_TOKEN_EXPIRE_HOURS
+            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
         )
     )
 

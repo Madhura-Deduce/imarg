@@ -8,12 +8,15 @@ from jose import jwt
 from jose import JWTError
 from services.abuse_service import is_ip_blocked
 
+
 from core.config import (
     SECRET_KEY,
     ALGORITHM
 )
 
 from core.database import get_db1
+
+from fastapi import Header   #added for api_access
 
 security = HTTPBearer()
 
@@ -47,17 +50,23 @@ def get_current_user(
             )
 
             user = cur.fetchone()
-            if not user["is_active"]:
-                raise HTTPException(
-                    status_code=403,
-                    detail="USER_BLOCKED"
-                )
 
             if not user:
 
                 raise HTTPException(
                     status_code=401,
                     detail="User not found"
+                )
+            if not user["is_active"]:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Your account has been blocked."
+                )
+
+            if user["api_key"] is None:
+                raise HTTPException(
+                    status_code=401,
+                    detail="API Key has been revoked."
                 )
 
             # Auto downgrade expired premium users
@@ -99,16 +108,45 @@ def get_current_user(
             status_code=401,
             detail="Invalid token"
         )
-#newly added
-def admin_required(
-    user=Depends(get_current_user)
+
+
+#API KEY access for forward and reverse
+def verify_api_key(
+        x_api_key: str = Header(...)
 ):
+    conn = get_db1()
+    cur = conn.cursor()
 
-    if user["role"] != "ADMIN":
-
-        raise HTTPException(
-            status_code=403,
-            detail="Admin access required"
+    try:
+        cur.execute(
+            """
+            SELECT
+                id AS user_id,
+                email,
+                api_key,
+                is_active
+            FROM users
+            WHERE api_key=%s
+            """,
+            (x_api_key,)
         )
 
-    return user
+        user = cur.fetchone()
+
+        if not user:
+            raise HTTPException(
+                status_code=401,
+                detail="INVALID_API_KEY"
+            )
+
+        if not user["is_active"]:
+            raise HTTPException(
+                status_code=403,
+                detail="USER_BLOCKED"
+            )
+
+        return user
+
+    finally:
+        cur.close()
+        conn.close()
